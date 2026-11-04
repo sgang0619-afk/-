@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생명기술 인터랙티브 학습 & 3D 바이오 랩</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background-color: #0b0f19; color: #f1f5f9; padding: 20px; line-height: 1.6; }
+        .wrapper { max-width: 950px; margin: 0 auto; background: #172133; padding: 25px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); border: 1px solid #2d3d5a; }
+        
+        header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #2d3d5a; padding-bottom: 15px; }
+        h1 { color: #38bdf8; font-size: 24px; font-weight: 800; }
+        .subtitle { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 13px; background: #0f172a; color: #94a3b8; border: 1px solid #2d3d5a; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 14px; transition: 0.2s; }
+        .tab-btn.active { background: #0284c7; color: #ffffff; border-color: #38bdf8; }
+
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* Q&A 스타일 */
+        .search-area { display: flex; gap: 10px; margin-bottom: 15px; }
+        input[type="text"] { flex: 1; padding: 14px 18px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; outline: none; font-size: 14px; }
+        input[type="text"]:focus { border-color: #38bdf8; }
+        .ask-btn { padding: 0 24px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        .ask-btn:hover { background: #0369a1; }
+
+        .chat-container { background: #0f172a; height: 420px; overflow-y: auto; padding: 18px; border-radius: 10px; border: 1px solid #2d3d5a; display: flex; flex-direction: column; gap: 14px; }
+        .chat-bubble { padding: 15px 18px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+        .chat-bubble.user { align-self: flex-end; background: #0369a1; color: #f0f9ff; max-width: 80%; }
+        .chat-bubble.bot { align-self: flex-start; background: #1e293b; color: #f1f5f9; border: 1px solid #334155; width: 100%; max-width: 100%; }
+
+        .video-box { margin-top: 15px; background: #0b0f19; padding: 15px; border-radius: 10px; border: 1px solid #2d3d5a; }
+        .video-title { font-size: 14px; color: #38bdf8; font-weight: bold; margin-bottom: 10px; }
+        .video-player { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; margin-top: 10px; }
+        .video-player iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+
+        /* 3D 스테이지 스타일 */
+        .viewer-box { background: #0f172a; border-radius: 10px; border: 1px solid #2d3d5a; overflow: hidden; }
+        .viewer-toolbar { display: flex; gap: 8px; padding: 12px; background: #1e293b; border-bottom: 1px solid #2d3d5a; }
+        .model-btn { padding: 8px 16px; background: #0f172a; color: #94a3b8; border: 1px solid #334155; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700; }
+        .model-btn.active { background: #10b981; color: white; border-color: #34d399; }
+        
+        .stage-3d { width: 100%; height: 380px; background: radial-gradient(circle, #1e293b 0%, #030712 100%); display: flex; justify-content: center; align-items: center; perspective: 800px; }
+        .object-box { width: 180px; height: 180px; position: relative; transform-style: preserve-3d; animation: rotateObj 10s infinite linear; display: flex; justify-content: center; align-items: center; }
+        
+        @keyframes rotateObj {
+            0% { transform: rotateX(15deg) rotateY(0deg); }
+            100% { transform: rotateX(15deg) rotateY(360deg); }
+        }
+
+        .cell-shape { width: 160px; height: 90px; background: linear-gradient(135deg, #34d399, #065f46); border-radius: 50px; box-shadow: 0 0 25px rgba(52,211,153,0.6); border: 2px solid #6ee7b7; display: flex; justify-content: center; align-items: center; color: #022c22; font-weight: bold; font-size: 14px; text-shadow: 0 1px 2px rgba(255,255,255,0.4); }
+        .dna-shape { width: 40px; height: 150px; background: linear-gradient(to right, #38bdf8, #f43f5e); border-radius: 20px; box-shadow: 0 0 25px rgba(56,189,248,0.6); display: flex; flex-direction: column; justify-content: space-around; align-items: center; }
+        .dna-node { width: 30px; height: 12px; background: #ffffff; border-radius: 6px; }
+        .heart-shape { width: 120px; height: 120px; background: linear-gradient(135deg, #f43f5e, #881337); border-radius: 50% 50% 0 0; transform: rotate(-45deg); box-shadow: 0 0 30px rgba(244,63,94,0.7); position: relative; }
+        .heart-shape::before { content: ''; position: absolute; width: 120px; height: 120px; background: linear-gradient(135deg, #f43f5e, #881337); border-radius: 50%; top: -60px; left: 0; }
+
+        .viewer-desc { padding: 16px; background: #1e293b; border-top: 1px solid #2d3d5a; }
+        .desc-title { color: #34d399; font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+        .desc-body { font-size: 13.5px; color: #cbd5e1; }
+
+        /* 퀴즈 스타일 */
+        .quiz-diff-bar { display: flex; gap: 8px; margin-bottom: 15px; }
+        .diff-btn { flex: 1; padding: 10px; background: #0f172a; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; cursor: pointer; font-weight: 700; }
+        .diff-btn.active { background: #10b981; color: white; border-color: #34d399; }
+        .quiz-card { background: #0f172a; padding: 22px; border-radius: 10px; border: 1px solid #2d3d5a; }
+        .quiz-q { font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 16px; }
+        .quiz-opt { width: 100%; text-align: left; padding: 13px 16px; margin-bottom: 9px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        .quiz-opt:hover { background: #334155; }
+        .result-box { margin-top: 15px; padding: 15px; border-radius: 8px; font-size: 14px; line-height: 1.5; }
+        .result-box.correct { background: #064e3b; border: 1px solid #10b981; color: #a7f3d0; }
+        .result-box.wrong { background: #7f1d1d; border: 1px solid #ef4444; color: #fecaca; }
+        .next-btn { margin-top: 12px; padding: 9px 18px; background: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <header>
+        <h1>🧬 생명기술 인터랙티브 학습 & 3D 바이오 랩</h1>
+        <div class="subtitle">성실한 AI Q&A, 입체 3D 뷰어, 맞춤 해설 무한 퀴즈</div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('learn', event)">자연어 Q&A</button>
+        <button class="tab-btn" onclick="switchTab('viewer3d', event)">실제 미생물 3D 입체 뷰어</button>
+        <button class="tab-btn" onclick="switchTab('quiz', event)">무한 퀴즈 풀기</button>
+    </div>
+
+    <!-- 1번 탭: Q&A -->
+    <div id="tab-learn" class="section active">
+        <div class="search-area">
+            <input type="text" id="userInput" placeholder="생명기술, 미생물, 발효, 유전자 등에 대해 질문하고 Enter를 누르세요..." onkeydown="handleEnter(event)">
+            <button class="ask-btn" onclick="doAsk()">질문하기</button>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="chat-bubble bot">
+                <div>궁금한 생명기술 내용(유산균, 유전자 가위, 3D 장기 등)을 입력해 보세요. 성실한 AI 해설과 함께 유튜브 교육 영상이 직접 연동됩니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2번 탭: 3D 뷰어 -->
+    <div id="tab-viewer3d" class="section">
+        <div class="viewer-box">
+            <div class="viewer-toolbar">
+                <button class="model-btn active" onclick="change3DModel('microbe', event)">🦠 3D 유산균</button>
+                <button class="model-btn" onclick="change3DModel('dna', event)">🧬 3D DNA</button>
+                <button class="model-btn" onclick="change3DModel('organ', event)">🫀 3D 인공심장</button>
+            </div>
+            
+            <div class="stage-3d">
+                <div class="object-box" id="objectStage">
+                    <div class="cell-shape">LACTOBACILLUS</div>
+                </div>
+            </div>
+
+            <div class="viewer-desc">
+                <div class="desc-title" id="descTitle">🦠 3D 유산균(젖산균) 미생물 세포 모형</div>
+                <div class="desc-body" id="descBody">실생활 발효 식품에 쓰이는 유산균 세포의 입체 볼륨감과 회전 구조를 확실하게 시각화한 모형입니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3번 탭: 퀴즈 -->
+    <div id="tab-quiz" class="section">
+        <div class="quiz-diff-bar">
+            <button class="diff-btn active" onclick="setDifficulty('easy', event)">초급 퀴즈</button>
+            <button class="diff-btn" onclick="setDifficulty('medium', event)">중급 퀴즈</button>
+            <button class="diff-btn" onclick="setDifficulty('hard', event)">고급 퀴즈</button>
+        </div>
+
+        <div class="quiz-card" id="quizCard"></div>
+    </div>
+</div>
+
+<script>
+    // =========================================================================
+    // ★ 아래 큰따옴표("") 사이에 발급받은 유튜브 API 키를 그대로 넣으세요!
+    // =========================================================================
+    const YOUTUBE_API_KEY = "AIzaSyAmw4y6SL8CAZKey4XGr3u54ajsp-aNpFc";
+
+    // --- 1. Q&A 및 유튜브 API 실시간 연동 ---
+    async function searchYouTubeVideo(searchQuery) {
+        if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY.includes("여기에")) return null;
+        try {
+            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery + " 생명기술")}&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.items && data.items.length > 0) {
+                return {
+                    id: data.items[0].id.videoId,
+                    title: data.items[0].snippet.title
+                };
+            }
+        } catch (error) {
+            console.error("유튜브 API 로드 실패:", error);
+        }
+        return null;
+    }
+
+    function processAIResponse(query) {
+        let q = query.toLowerCase();
+        let reply = "";
+
+        if (q.includes("유산균") || q.includes("미생물") || q.includes("발효") || q.includes("김치")) {
+            reply = "미생물과 발효 기술은 인류가 활용한 대표적인 실생활 생명기술입니다. 김치, 요구르트에 쓰이는 젖산균은 유익균을 증식시켜 식품의 맛과 보존성을 높이며 환경 정화에도 쓰입니다.";
+        } else if (q.includes("가위") || q.includes("크리스퍼") || q.includes("crispr") || q.includes("유전자")) {
+            reply = "크리스퍼 유전자가위(CRISPR-Cas9)는 원하는 DNA 염기서열의 특정 부위를 정밀하게 타격해 교정하는 혁신적인 3세대 인공 유전자 기술입니다.";
+        } else if (q.includes("장기") || q.includes("3d") || q.includes("프린팅") || q.includes("인공")) {
+            reply = "3D 바이오프린팅 기술은 환자 본인의 줄기세포 바이오 잉크를 이용해 인공 조직이나 심장 장기를 입체로 적층 제작하여 이식 거부 반응을 낮추는 첨단 기술입니다.";
+        } else if (q.includes("발달") || q.includes("역사") || q.includes("고대") || q.includes("파스퇴르")) {
+            reply = "생명기술의 발달은 고대 자연 발효 단계에서 시작해 19세기 파스퇴르의 미생물 규명 및 멘델의 유전 법칙을 거쳐, 20세기 DNA 이중나선 발견과 현대 유전자 공학으로 발전해 왔습니다.";
+        } else {
+            reply = `'${query}'에 대한 성실한 AI 과학 해설입니다. 생명기술은 생물체의 유용한 특성을 활용하는 기술로, 고대 발효 기술부터 현대 유전자 조작 및 미래 바이오 의료 기술까지 연속적으로 발전하고 있습니다.`;
+        }
+        return reply;
+    }
+
+    function handleEnter(e) {
+        if (e.key === 'Enter') doAsk();
+    }
+
+    async function doAsk() {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const chatContainer = document.getElementById('chatContainer');
+        chatContainer.innerHTML += `<div class="chat-bubble user">${text}</div>`;
+        input.value = '';
+
+        const replyText = processAIResponse(text);
+        const ytResult = await searchYouTubeVideo(text);
+
+        let videoHtml = "";
+        if (ytResult) {
+            videoHtml = `
+                <div class="video-box">
+                    <div class="video-title">🎬 유튜브 연동 영상: ${ytResult.title}</div>
+                    <div class="video-player">
+                        <iframe src="https://www.youtube.com/embed/${ytResult.id}?autoplay=0" allowfullscreen></iframe>
+                    </div>
+                </div>
+            `;
+        } else {
+            videoHtml = `
+                <div class="video-box">
+                    <div class="video-title">🎬 추천 교육 영상 바로가기</div>
+                    <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(text + " 생명기술")}" target="_blank" style="color:#38bdf8; font-weight:bold; font-size:13px; text-decoration:none;">▶ 유튜브에서 '${text}' 검색 결과 보기 ↗</a>
+                    <div style="font-size:11px; color:#94a3b8; margin-top:4px;">* 소스 코드 상단의 YOUTUBE_API_KEY 따옴표 안에 키를 입력하시면 이 자리에 영상이 바로 재생됩니다.</div>
+                </div>
+            `;
+        }
+
+        chatContainer.innerHTML += `
+            <div class="chat-bubble bot">
+                <div style="margin-bottom:8px; font-weight:700; color:#38bdf8;">성실한 AI 답변:</div>
+                <div>${replyText}</div>
+                ${videoHtml}
+            </div>
+        `;
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // --- 2. 3D 입체 모형 전환 ---
+    function change3DModel(type, e) {
+        document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+
+        const stage = document.getElementById('objectStage');
+        const title = document.getElementById('descTitle');
+        const body = document.getElementById('descBody');
+
+        if (type === 'microbe') {
+            stage.innerHTML = `<div class="cell-shape">LACTOBACILLUS</div>`;
+            title.textContent = "🦠 3D 유산균(젖산균) 미생물 세포 모형";
+            body.textContent = "실생활 발효 식품에 쓰이는 유산균 세포의 입체 볼륨감과 회전 구조를 확실하게 시각화한 모형입니다.";
+        } else if (type === 'dna') {
+            stage.innerHTML = `
+                <div class="dna-shape">
+                    <div class="dna-node"></div>
+                    <div class="dna-node"></div>
+                    <div class="dna-node"></div>
+                    <div class="dna-node"></div>
+                </div>
+            `;
+            title.textContent = "🧬 3D DNA 이중나선 입체 구조";
+            body.textContent = "왓슨과 클릭이 규명한 DNA 이중나선 입체 구조가 회전하는 모습을 시각화한 모형입니다.";
+        } else if (type === 'organ') {
+            stage.innerHTML = `<div class="heart-shape"></div>`;
+            title.textContent = "🫀 3D 바이오프린팅 인공 심장 모형";
+            body.textContent = "3D 바이오프린팅 기술을 통해 세포 바이오 잉크로 적층 제작하는 인공 심장 모형입니다.";
+        }
+    }
+
+    // --- 3. 퀴즈 시스템 ---
+    const bigQuizPool = {
+        easy: [
+            { q: "김치나 요구르트 제조에 쓰이며 음식의 보존성을 높여주는 유익한 미생물은?", opt: ["① 대장균", "② 젖산균 (유산균)", "③ 결핵균", "④ 살모넬라균"], a: 1, exp: "대장균, 결핵균, 살모넬라균은 유해 병원균인 반면, 젖산균(유산균)은 발효를 돕는 대표적인 유익 미생물입니다." },
+            { q: "1953년 DNA의 이중 나선 구조를 밝혀낸 대표적인 과학자는?", opt: ["① 왓슨과 클릭", "② 파스퇴르와 멘델", "③ 다윈과 뉴턴", "④ 아인슈타인"], a: 0, exp: "파스퇴르는 발효, 멘델은 유전 법칙을 연구했으며, DNA 이중 나선 구조를 규명한 과학자는 왓슨과 클릭입니다." }
+        ],
+        medium: [
+            { q: "표적 DNA 부위를 정밀하게 타격해 교정하는 3세대 인공 유전자 기술은?", opt: ["① 세포 융합", "② 크리스퍼 유전자가위 (CRISPR-Cas9)", "③ 조직 배양", "④ 전통 품종 개량"], a: 1, exp: "세포 융합이나 조직 배양은 세포를 합치거나 키우는 기술이며, DNA를 정밀하게 잘라 교정하는 기술은 크리스퍼 유전자 가위입니다." }
+        ],
+        hard: [
+            { q: "생명체 구성 요소를 공학적으로 디자인하고 인공적으로 합성하는 첨단 분야는?", opt: ["① 전통 농학", "② 단순 발효학", "③ 합성생물학 (Synthetic Biology)", "④ 고전 생태학"], a: 2, exp: "전통 농학이나 발효학은 자연적 생물 현상을 활용하는 과거 기술인 반면, 생명 시스템을 공학적으로 디자인하고 인공 합성하는 최첨단 분야는 합성생물학입니다." }
+        ]
+    };
+
+    let curDiff = 'easy', activeQueue = [], solvedCount = 0;
+
+    function switchTab(tab, e) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        e.currentTarget.classList.add('active');
+        if (tab === 'quiz') renderQuiz();
+    }
+
+    function shuffle(arr) {
+        let a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    function setDifficulty(diff, e) {
+        curDiff = diff;
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        solvedCount = 0;
+        activeQueue = shuffle(bigQuizPool[diff]);
+        renderQuiz();
+    }
+
+    function renderQuiz() {
+        if (activeQueue.length === 0) {
+            activeQueue = shuffle(bigQuizPool[curDiff]);
+        }
+        const item = activeQueue.shift();
+        const area = document.getElementById('quizCard');
+
+        let opts = "";
+        item.opt.forEach((o, i) => {
+            opts += `<button class="quiz-opt" onclick="checkQ(${i}, ${item.a}, '${item.exp.replace(/'/g, "\\'")}', '${item.opt[i]}')">${o}</button>`;
+        });
+
+        area.innerHTML = `
+            <div style="font-size:12px; color:#38bdf8; margin-bottom:10px; font-weight:bold; display:flex; justify-content:space-between;">
+                <span>난이도: <strong style="text-transform:uppercase;">${curDiff}</strong></span>
+                <span>맞힌 문제 수: ${solvedCount}개</span>
+            </div>
+            <div class="quiz-q">Q. ${item.q}</div>
+            <div id="optBox">${opts}</div>
+            <div id="resBox"></div>
+        `;
+    }
+
+    function checkQ(idx, ans, exp, selectedText) {
+        const resBox = document.getElementById('resBox');
+        const optBox = document.getElementById('optBox');
+        for (let b of optBox.getElementsByTagName('button')) b.disabled = true;
+
+        if (idx === ans) {
+            solvedCount++;
+            resBox.className = "result-box correct";
+            resBox.innerHTML = `<b>⭕ 정답입니다!</b><br>${exp}<br><button class="next-btn" onclick="renderQuiz()">다음 문제 풀기 ➔</button>`;
+        } else {
+            resBox.className = "result-box wrong";
+            resBox.innerHTML = `<b>❌ 틀렸습니다. (선택하신 "${selectedText}"은(는) 오답입니다.)</b><br><br><b>맞춤 해설:</b> ${exp}<br><button class="next-btn" onclick="renderQuiz()">다음 문제 풀기 ➔</button>`;
+        }
+    }
+
+    window.onload = function() {
+        activeQueue = shuffle(bigQuizPool['easy']);
+        renderQuiz();
+    };
+</script>
+
+</body>
+</html>
